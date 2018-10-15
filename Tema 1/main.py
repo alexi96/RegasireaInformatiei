@@ -1,27 +1,18 @@
-import re
 import os
 import sys
 from sys import stdout
 
-
-
-T = 9999999
 DOCUMENTS_PATH = 'real_data'
 postList = {}
-fileIds = {}
-
-exclude_list = ['in', 'the', 'and', 'a', 'of', 'to']
 
 
 
 def index_documents():
     for dirname, dirnames, filenames in os.walk(DOCUMENTS_PATH):
-        id = 0
+        # print path to all filenames.
         for filename in filenames:
             path = os.path.join(dirname, filename)
-            fileIds[path] = id
             index_file(path)
-            id += 1
     sort_post()
 
 
@@ -31,10 +22,7 @@ def index_file(path):
     with open(path, 'r') as f:
         for line in f:
             for word in line.split():
-                if word in exclude_list:
-                    continue
-
-                index_token(word, fileIds[path], index)
+                index_token(word, path, index)
                 index += 1
 
     # pentru fiecare token din fisier apelam index token
@@ -42,16 +30,15 @@ def index_file(path):
     #apelezi index_token(token, path, pozitia_tokenului_in_fisier)
 
 
+
 #Apelat pt fiecare token din fisier
-def index_token(token, file_id, index):
+def index_token(token, file, index):
+    for i in range(32, 63):
+        if token == i:
+            str.Replace(token,"")
+        if token.find(token,i):
 
-    newToken = re.sub(r"[,.;@#'?!&$]+\ *", "", token) # Scoate toate semnele de punctuatie
-    token = newToken
 
-    if token.endswith('s'): #Modifica pluralul in singularul token-ului
-        token= token[:-1]
-
-    token=token.lower();
 
     if token in postList:
         files = postList[token]
@@ -59,11 +46,11 @@ def index_token(token, file_id, index):
         files = {}
         postList[token] = files
 
-    if file_id in files:
-        position_list = files[file_id]
+    if file in files:
+        position_list = files[file]
     else:
         position_list = []
-        files[file_id] = position_list
+        files[file] = position_list
 
     position_list.append(index)
 
@@ -76,12 +63,13 @@ def sort_post():
             position_list.sort()
 
 
+
 def print_post_list():
     for token, files in postList.items():
         stdout.write(token)
         stdout.write("\n")
         for file, position_list in files.items():
-            stdout.write("\t" + str(file) + ": ")
+            stdout.write("\t" + file + ": ")
 
             for position in position_list:
                 stdout.write(str(position))
@@ -90,11 +78,10 @@ def print_post_list():
             stdout.write("\n")
     stdout.write("\n")
 
-
 args = sys.argv
 args = ['we', 'are']
 
-index_documents()
+for arg in sys.argv:
+    index_documents()
 
 print_post_list()
-
