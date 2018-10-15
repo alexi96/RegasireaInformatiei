@@ -6,6 +6,7 @@ DOCUMENTS_PATH = 'real_data'
 postList = {}
 
 
+
 def index_documents():
     for dirname, dirnames, filenames in os.walk(DOCUMENTS_PATH):
         # print path to all filenames.
@@ -23,6 +24,7 @@ def index_file(path):
             for word in line.split():
                 index_token(word, path, index)
                 index += 1
+
     # pentru fiecare token din fisier apelam index token
     #obti un token din fisier
     #apelezi index_token(token, path, pozitia_tokenului_in_fisier)
@@ -31,6 +33,13 @@ def index_file(path):
 
 #Apelat pt fiecare token din fisier
 def index_token(token, file, index):
+    for i in range(32, 63):
+        if token == i:
+            str.Replace(token,"")
+        if token.find(token,i):
+
+
+
     if token in postList:
         files = postList[token]
     else:
