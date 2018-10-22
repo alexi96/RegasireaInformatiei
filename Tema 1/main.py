@@ -2,9 +2,10 @@ import os
 import sys
 from sys import stdout
 
+from merging import debug_to_merge
 
 T = 9999999
-DOCUMENTS_PATH = 'simple_test_data'  # 'real_data'
+DOCUMENTS_PATH = 'simple_test_data'  # 'real_data' or 'simple_test_data'
 postList = {}
 fileIds = {}
 
@@ -97,29 +98,55 @@ def print_post_list():
     stdout.write("\n")
 
 
-def merge_posting_list(query):
-    t = []
+def tokenize_list(query):
+    res = []
     for q in query:
         q = simple_tikenize(q)
-        t.append(q)
-    query = t
+        res.append(q)
+    return res
 
-    needed_posts = {}
+
+def merge_tow_post_lists(a, b):
+    ak = []
+    for key in a.keys():
+        ak.append(key)
+
+    bk = []
+    for key in b.keys():
+        bk.append(key)
+
+    res = {}  # dictionar de fisiere
+    keys = [value for value in ak if value in bk]  # lista cu id-urile comune ale fisierelor
+    ai = 0
+    bi = 1
+    for k in keys:
+        positions = [value for value in b[k] if (value - 1) in a[k]]
+        if positions:
+            res[k] = positions
+    return res
+
+
+def merge_posting_list(query):
+
+    to_merge = {}
     for q in query:
-        needed_posts[q] = postList[q]
+        to_merge[q] = postList[q]
 
-    for token, files in needed_posts.items():
-        stdout.write(token)
-        stdout.write("\n")
-        for file, position_list in files.items():
-            stdout.write("\t" + str(file) + ": ")
+    debug_to_merge(to_merge)
 
-            for position in position_list:
-                stdout.write(str(position))
-                stdout.write(", ")
+    while len(to_merge) > 1:
+        t = iter(to_merge)
+        first = next(t)
+        second = next(t)
 
-            stdout.write("\n")
-    stdout.write("\n")
+        t = merge_tow_post_lists(to_merge[first], to_merge[second])
+        t = {(first + ' ' + second): t}
+
+        del to_merge[first]
+        del to_merge[second]
+
+        to_merge = dict(t, **to_merge)
+        debug_to_merge(to_merge)
 
 
 index_documents()
@@ -128,5 +155,6 @@ index_documents()
 
 args = sys.argv
 args = ['we', 'are', 'the']
+query = tokenize_list(args)
 
-merge_posting_list(args)
+merge_posting_list(query)
