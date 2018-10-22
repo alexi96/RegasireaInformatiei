@@ -1,17 +1,15 @@
-import re
 import os
 import sys
 from sys import stdout
 
 
-
 T = 9999999
-DOCUMENTS_PATH = 'real_data'
+DOCUMENTS_PATH = 'simple_test_data'  # 'real_data'
 postList = {}
 fileIds = {}
 
-exclude_list = ['in', 'the', 'and', 'a', 'of', 'to']
-
+exclude_list = []  # ['in', 'the', 'and', 'a', 'of', 'to']
+punctuation_string = "()[]{},.;@#'?!&$\"*"
 
 
 def index_documents():
@@ -25,7 +23,7 @@ def index_documents():
     sort_post()
 
 
-#Apelat pt fiecare fisier
+# Apelat pt fiecare fisier
 def index_file(path):
     index = 0
     with open(path, 'r') as f:
@@ -38,20 +36,30 @@ def index_file(path):
                 index += 1
 
     # pentru fiecare token din fisier apelam index token
-    #obti un token din fisier
-    #apelezi index_token(token, path, pozitia_tokenului_in_fisier)
+    # obti un token din fisier
+    # apelezi index_token(token, path, pozitia_tokenului_in_fisier)
 
 
-#Apelat pt fiecare token din fisier
+def simple_tikenize(word):
+    res = word
+    res = ''.join(ch for ch in res if ch not in punctuation_string)
+
+    if res.endswith('s'):  # Modifica pluralul in singularul res-ului
+        res = res[:-1]
+
+    res = res.lower()
+    return res
+
+
+# Apelat pt fiecare token din fisier
 def index_token(token, file_id, index):
+    #  newToken = re.sub(r"[,.;@#'?!&$]+\ *", "", token) # Scoate toate semnele de punctuatie
+    token = simple_tikenize(token)
 
-    newToken = re.sub(r"[,.;@#'?!&$]+\ *", "", token) # Scoate toate semnele de punctuatie
-    token = newToken
-
-    if token.endswith('s'): #Modifica pluralul in singularul token-ului
-        token= token[:-1]
-
-    token=token.lower();
+    if not token:  # daca e gol dupa prelucrare
+        return
+    if token in exclude_list:  # daca e gol dupa prelucrare
+        return
 
     if token in postList:
         files = postList[token]
@@ -70,8 +78,6 @@ def index_token(token, file_id, index):
 
 def sort_post():
     for token, files in postList.items():
-        stdout.write(token)
-        stdout.write("\n")
         for file, position_list in files.items():
             position_list.sort()
 
@@ -91,10 +97,36 @@ def print_post_list():
     stdout.write("\n")
 
 
-args = sys.argv
-args = ['we', 'are']
+def merge_posting_list(query):
+    t = []
+    for q in query:
+        q = simple_tikenize(q)
+        t.append(q)
+    query = t
+
+    needed_posts = {}
+    for q in query:
+        needed_posts[q] = postList[q]
+
+    for token, files in needed_posts.items():
+        stdout.write(token)
+        stdout.write("\n")
+        for file, position_list in files.items():
+            stdout.write("\t" + str(file) + ": ")
+
+            for position in position_list:
+                stdout.write(str(position))
+                stdout.write(", ")
+
+            stdout.write("\n")
+    stdout.write("\n")
+
 
 index_documents()
 
-print_post_list()
+#  print_post_list()
 
+args = sys.argv
+args = ['we', 'are', 'the']
+
+merge_posting_list(args)
