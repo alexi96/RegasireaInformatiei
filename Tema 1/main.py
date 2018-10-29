@@ -1,11 +1,12 @@
 import os
+import pickle
 import sys
 from sys import stdout
 
 from merging import debug_to_merge
 
 T = 9999999
-DOCUMENTS_PATH = 'simple_test_data'  # 'real_data' or 'simple_test_data'
+DOCUMENTS_PATH = 'real_data'  # 'real_data' or 'simple_test_data'
 postList = {}
 fileIds = {}
 
@@ -41,7 +42,7 @@ def index_file(path):
     # apelezi index_token(token, path, pozitia_tokenului_in_fisier)
 
 
-def simple_tikenize(word):
+def simple_tokenize(word):
     res = word
     res = ''.join(ch for ch in res if ch not in punctuation_string)
 
@@ -55,7 +56,7 @@ def simple_tikenize(word):
 # Apelat pt fiecare token din fisier
 def index_token(token, file_id, index):
     #  newToken = re.sub(r"[,.;@#'?!&$]+\ *", "", token) # Scoate toate semnele de punctuatie
-    token = simple_tikenize(token)
+    token = simple_tokenize(token)
 
     if not token:  # daca e gol dupa prelucrare
         return
@@ -79,8 +80,24 @@ def index_token(token, file_id, index):
 
 def sort_post():
     for token, files in postList.items():
+        postList[token] = sort_files(files)
+
+
+def sort_files(files):
+    files = files.copy()
+    res = {}
+
+    while len(files) > 0:
+        max_obj = {}
+        max_size = 0
         for file, position_list in files.items():
-            position_list.sort()
+            l = len(position_list)
+            if l > max_size:
+                max_size = l
+                max_obj = file
+        res[max_obj] = files[max_obj]
+        del files[max_obj]
+    return res
 
 
 def print_post_list():
@@ -101,7 +118,7 @@ def print_post_list():
 def tokenize_list(query):
     res = []
     for q in query:
-        q = simple_tikenize(q)
+        q = simple_tokenize(q)
         res.append(q)
     return res
 
@@ -127,26 +144,47 @@ def merge_tow_post_lists(a, b):
 
 
 def merge_posting_list(query):
-
-    to_merge = {}
+    res = {}
     for q in query:
-        to_merge[q] = postList[q]
+        res[q] = postList[q]
 
-    debug_to_merge(to_merge)
-
-    while len(to_merge) > 1:
-        t = iter(to_merge)
+    while len(res) > 1:
+        t = iter(res)
         first = next(t)
         second = next(t)
 
-        t = merge_tow_post_lists(to_merge[first], to_merge[second])
+        t = merge_tow_post_lists(res[first], res[second])
         t = {(first + ' ' + second): t}
 
-        del to_merge[first]
-        del to_merge[second]
+        del res[first]
+        del res[second]
 
-        to_merge = dict(t, **to_merge)
-        debug_to_merge(to_merge)
+        res = dict(t, **res)
+
+    return res
+
+
+def save_to_disk(posting_list):
+    SAVE_FILE = 'disk'
+    file = open(SAVE_FILE, 'wb')
+    pickle.dump(posting_list, file)
+    file.close()
+
+
+SAVE_FILE = 'disk'
+
+
+def save_to_disk(posting_list):
+    file = open(SAVE_FILE, 'wb')
+    pickle.dump(posting_list, file)
+    file.close()
+
+
+def open_from_disk():
+    file = open(SAVE_FILE, 'rb')
+    res = pickle.load(file)
+    file.close()
+    return res
 
 
 index_documents()
@@ -154,7 +192,13 @@ index_documents()
 #  print_post_list()
 
 args = sys.argv
-args = ['we', 'are', 'the']
+args = ['we', 'are']
 query = tokenize_list(args)
 
-merge_posting_list(query)
+debug_to_merge(postList)
+
+result = merge_posting_list(query)
+
+#save_to_disk(postList)
+#postList = open_from_disk()
+#debug_to_merge(postList)
