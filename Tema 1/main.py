@@ -3,12 +3,14 @@ import pickle
 import sys
 from sys import stdout
 
-from merging import debug_to_merge
+import compressing
+from compressing import add_to_dict
 
 T = 9999999
-DOCUMENTS_PATH = 'real_data'  # 'real_data' or 'simple_test_data'
+DOCUMENTS_PATH = 'simple_test_data'  # 'real_data' or 'simple_test_data'
 postList = {}
 fileIds = {}
+fileNames = {}
 
 exclude_list = []  # ['in', 'the', 'and', 'a', 'of', 'to']
 punctuation_string = "()[]{},.;@#'?!&$\"*"
@@ -20,6 +22,7 @@ def index_documents():
         for filename in filenames:
             path = os.path.join(dirname, filename)
             fileIds[path] = id
+            fileNames[id] = path
             index_file(path)
             id += 1
     sort_post()
@@ -63,11 +66,16 @@ def index_token(token, file_id, index):
     if token in exclude_list:  # daca e gol dupa prelucrare
         return
 
+    # token is valid
+    dictIndex = compressing.add_to_dict(token)
+    #  tokenId = dictIndex['id']
+    tokenId = token
+    # add token to postlist
     if token in postList:
-        files = postList[token]
+        files = postList[tokenId]
     else:
         files = {}
-        postList[token] = files
+        postList[tokenId] = files
 
     if file_id in files:
         position_list = files[file_id]
@@ -146,6 +154,8 @@ def merge_tow_post_lists(a, b):
 def merge_posting_list(query):
     res = {}
     for q in query:
+        if q not in postList:
+            return []
         res[q] = postList[q]
 
     while len(res) > 1:
@@ -187,18 +197,36 @@ def open_from_disk():
     return res
 
 
+def debug_print(to_merge):
+    for token, files in to_merge.items():
+        stdout.write(token)
+        stdout.write("\n")
+        for file, position_list in files.items():
+            stdout.write("\t" + fileNames[file] + ": ")
+
+            for position in position_list:
+                stdout.write(str(position))
+                stdout.write(", ")
+
+            stdout.write("\n")
+    stdout.write("\n")
+
+
 index_documents()
 
 #  print_post_list()
 
 args = sys.argv
-args = ['we', 'are']
+args = ['a', 'file']  # ['we', 'are', 'the']
 query = tokenize_list(args)
-
-debug_to_merge(postList)
+# query = compressing.to_posting_ids(query)
 
 result = merge_posting_list(query)
 
-#save_to_disk(postList)
-#postList = open_from_disk()
-#debug_to_merge(postList)
+debug_print(result)
+
+#  save_to_disk(postList)
+#  postList = open_from_disk()
+#  debug_to_merge(postList)
+
+compressing.print_dict()
