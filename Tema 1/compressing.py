@@ -67,12 +67,29 @@ def add_to_dict(token):
     return new_index
 
 
+#  {'token': {'fr': 5, 'id': 7}}
+def to_dictionary(tokens):
+    index = dictionary['index']
+    data = dictionary['data']
+    for t, td in tokens.items():
+        pointer = len(data)
+        data += bytearray(t, 'utf8')
+        new_index = {
+            'pointer': pointer,
+            'freq': td['fr'],
+            'id': td['id']
+        }
+        index.append(new_index)
+
+
 def print_dict():
     index = dictionary['index']
     data = dictionary['data']
     for i in index:
+        stdout.write(str(i['id']))
+        stdout.write(', ')
         stdout.write(str(i['pointer']))
-        stdout.write(': ')
+        stdout.write(', ')
         stdout.write(str(i['freq']))
         stdout.write("\n")
     stdout.write(data.decode("utf-8"))

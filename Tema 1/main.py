@@ -4,11 +4,11 @@ import sys
 from sys import stdout
 
 import compressing
+import persistence
 from compressing import add_to_dict
 
-T = 9999999
-DOCUMENTS_PATH = 'simple_test_data'  # 'real_data' or 'simple_test_data'
-postList = {}
+T = 1000
+DOCUMENTS_PATH = 'simple_test_data'  # 'real_data' or 'simple_test_data', 'disk_test_data'
 fileIds = {}
 fileNames = {}
 
@@ -17,19 +17,26 @@ punctuation_string = "()[]{},.;@#'?!&$\"*"
 
 
 def index_documents():
+    post_list = {}
+    dictionary = {}  # {'token': {'fr': 5, 'id': 7}}
+
     for dirname, dirnames, filenames in os.walk(DOCUMENTS_PATH):
         id = 0
         for filename in filenames:
             path = os.path.join(dirname, filename)
             fileIds[path] = id
             fileNames[id] = path
-            index_file(path)
+            index_file(post_list, path, dictionary)
             id += 1
-    sort_post()
+
+    #  sort_post(post_list)
+    compressing.to_dictionary(dictionary)
+    dictionary = None
+    return post_list
 
 
 # Apelat pt fiecare fisier
-def index_file(path):
+def index_file(post_list, path, dictionary):
     index = 0
     with open(path, 'r') as f:
         for line in f:
@@ -37,8 +44,13 @@ def index_file(path):
                 if word in exclude_list:
                     continue
 
-                index_token(word, fileIds[path], index)
+                index_token(post_list, word, fileIds[path], index, dictionary)
                 index += 1
+
+                post_list_size = sys.getsizeof(post_list)
+                if post_list_size >= T:
+                    persistence.database_merge_posting_list(post_list)
+                    post_list.clear()
 
     # pentru fiecare token din fisier apelam index token
     # obti un token din fisier
@@ -57,7 +69,7 @@ def simple_tokenize(word):
 
 
 # Apelat pt fiecare token din fisier
-def index_token(token, file_id, index):
+def index_token(post_list, token, file_id, index, dictionary):
     #  newToken = re.sub(r"[,.;@#'?!&$]+\ *", "", token) # Scoate toate semnele de punctuatie
     token = simple_tokenize(token)
 
@@ -67,15 +79,18 @@ def index_token(token, file_id, index):
         return
 
     # token is valid
-    dictIndex = compressing.add_to_dict(token)
-    #  tokenId = dictIndex['id']
+    if token in dictionary:
+        dictionary[token]['fr'] += 1
+    else:
+        dictionary[token] = {'id': len(dictionary), 'fr': 1}
+
     tokenId = token
     # add token to postlist
-    if token in postList:
-        files = postList[tokenId]
+    if token in post_list:
+        files = post_list[tokenId]
     else:
         files = {}
-        postList[tokenId] = files
+        post_list[tokenId] = files
 
     if file_id in files:
         position_list = files[file_id]
@@ -86,9 +101,9 @@ def index_token(token, file_id, index):
     position_list.append(index)
 
 
-def sort_post():
-    for token, files in postList.items():
-        postList[token] = sort_files(files)
+def sort_post(post_list):
+    for token, files in post_list.items():
+        post_list[token] = sort_files(files)
 
 
 def sort_files(files):
@@ -108,8 +123,8 @@ def sort_files(files):
     return res
 
 
-def print_post_list():
-    for token, files in postList.items():
+def print_post_list(post_list):
+    for token, files in post_list.items():
         stdout.write(token)
         stdout.write("\n")
         for file, position_list in files.items():
@@ -151,12 +166,12 @@ def merge_tow_post_lists(a, b):
     return res
 
 
-def merge_posting_list(query):
+def merge_posting_list(post_list, query):
     res = {}
     for q in query:
-        if q not in postList:
+        if q not in post_list:
             return []
-        res[q] = postList[q]
+        res[q] = post_list[q]
 
     while len(res) > 1:
         t = iter(res)
@@ -168,37 +183,44 @@ def merge_posting_list(query):
 
         del res[first]
         del res[second]
-
         res = dict(t, **res)
 
     return res
 
 
-def save_to_disk(posting_list):
-    SAVE_FILE = 'disk'
-    file = open(SAVE_FILE, 'wb')
-    pickle.dump(posting_list, file)
-    file.close()
+def merge_posting_list_from_database(query):
+    res = {}
+    i = 0
+    l = len(query)
+    first = ''
+    second = ''
+    while i < l:
+        if not res:
+            n = query[i]
+            res = persistence.get_by_token(n)
+            if not res:
+                return {}
+            i += 1
+            first = n
+            continue
 
+        second = query[i]
+        i += 1
 
-SAVE_FILE = 'disk'
+        t = persistence.get_by_token(second)
+        if not t:
+            return {}
 
-
-def save_to_disk(posting_list):
-    file = open(SAVE_FILE, 'wb')
-    pickle.dump(posting_list, file)
-    file.close()
-
-
-def open_from_disk():
-    file = open(SAVE_FILE, 'rb')
-    res = pickle.load(file)
-    file.close()
+        t = merge_tow_post_lists(res[first], t[second])
+        del res[first]
+        first = first + ' ' + second
+        t = {first: t}
+        res = dict(t, **res)
     return res
 
 
-def debug_print(to_merge):
-    for token, files in to_merge.items():
+def debug_print(post_list):
+    for token, files in post_list.items():
         stdout.write(token)
         stdout.write("\n")
         for file, position_list in files.items():
@@ -212,17 +234,16 @@ def debug_print(to_merge):
     stdout.write("\n")
 
 
-index_documents()
+pl = index_documents()
 
 #  print_post_list()
 
 args = sys.argv
-args = ['a', 'file']  # ['we', 'are', 'the']
+args = ['we', 'are', 'the']  # ['we', 'are', 'the']
 query = tokenize_list(args)
 # query = compressing.to_posting_ids(query)
 
-result = merge_posting_list(query)
-
+result = merge_posting_list_from_database(query)
 debug_print(result)
 
 #  save_to_disk(postList)
