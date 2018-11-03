@@ -7,8 +7,9 @@ import compressing
 import persistence
 from compressing import add_to_dict
 
-T = 1000
-DOCUMENTS_PATH = 'simple_test_data'  # 'real_data' or 'simple_test_data', 'disk_test_data'
+T = 512000
+DOCUMENTS_PATH = 'real_data'  # 'real_data' or 'simple_test_data', 'disk_test_data'
+INPUT_OUTPUT = 'queries'  #
 fileIds = {}
 fileNames = {}
 
@@ -16,18 +17,27 @@ exclude_list = []  # ['in', 'the', 'and', 'a', 'of', 'to']
 punctuation_string = "()[]{},.;@#'?!&$\"*"
 
 
-def index_documents():
-    post_list = {}
-    dictionary = {}  # {'token': {'fr': 5, 'id': 7}}
+#def size_
 
+
+def index_files():
     for dirname, dirnames, filenames in os.walk(DOCUMENTS_PATH):
         id = 0
         for filename in filenames:
             path = os.path.join(dirname, filename)
             fileIds[path] = id
             fileNames[id] = path
-            index_file(post_list, path, dictionary)
             id += 1
+
+
+def index_documents():
+    post_list = {}
+    dictionary = {}  # {'token': {'fr': 5, 'id': 7}}
+
+    for dirname, dirnames, filenames in os.walk(DOCUMENTS_PATH):
+        for filename in filenames:
+            path = os.path.join(dirname, filename)
+            index_file(post_list, path, dictionary)
 
     #  sort_post(post_list)
     compressing.to_dictionary(dictionary)
@@ -38,6 +48,7 @@ def index_documents():
 # Apelat pt fiecare fisier
 def index_file(post_list, path, dictionary):
     index = 0
+    print('indexing file: ' + path)
     with open(path, 'r') as f:
         for line in f:
             for word in line.split():
@@ -52,6 +63,7 @@ def index_file(post_list, path, dictionary):
                     persistence.database_merge_posting_list(post_list)
                     post_list.clear()
 
+    persistence.database_merge_posting_list(post_list)
     # pentru fiecare token din fisier apelam index token
     # obti un token din fisier
     # apelezi index_token(token, path, pozitia_tokenului_in_fisier)
@@ -233,21 +245,28 @@ def debug_print(post_list):
             stdout.write("\n")
     stdout.write("\n")
 
-
-pl = index_documents()
-
 #  print_post_list()
 
-args = sys.argv
-args = ['we', 'are', 'the']  # ['we', 'are', 'the']
-query = tokenize_list(args)
-# query = compressing.to_posting_ids(query)
 
-result = merge_posting_list_from_database(query)
-debug_print(result)
+def main():
+    index_files()
+    index_documents()
 
-#  save_to_disk(postList)
-#  postList = open_from_disk()
-#  debug_to_merge(postList)
+    for dirname, dirnames, filenames in os.walk(INPUT_OUTPUT):
+        for filename in filenames:
+            path = os.path.join(dirname, filename)
+            if path.endswith('.out'):
+                continue
+            with open(path, 'r') as content_file:
+                content = content_file.read()
+            query = content.split()
+            query = tokenize_list(query)
+            result = merge_posting_list_from_database(query)
+            debug_print(result)
+            with open(path + '.out', 'w') as output:
+                persistence.save_postlist(result, output, fileNames)
 
-compressing.print_dict()
+
+
+main()
+

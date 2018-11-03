@@ -40,7 +40,7 @@ def merge_word(token, files):
         write_word(token, files)
         return
 
-    database_name_temp = database_name + 'temp'
+    database_name_temp = database_name + '.temp'
 
     with open(database_name) as fp, open(database_name_temp, 'w') as tf:
         line = fp.readline()
@@ -79,7 +79,8 @@ def merge_word(token, files):
                 tf.write(str(p))
                 tf.write(',')
             tf.write('\n')
-
+        fp.close()
+        tf.close()
     os.remove(database_name)
     os.rename(database_name_temp, database_name)
 
@@ -116,3 +117,18 @@ def get_by_token(token):
             line = fp.readline()
     res[token] = files
     return res
+
+
+def save_postlist(post_list, file, fileNames):
+    for token, files in post_list.items():
+        file.write(token)
+        file.write("\n")
+        for file_id, position_list in files.items():
+            file.write("\t" + fileNames[file_id] + ": ")
+
+            for position in position_list:
+                file.write(str(position))
+                file.write(", ")
+
+            file.write("\n")
+    file.write("\n")
