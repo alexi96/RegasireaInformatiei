@@ -1,5 +1,5 @@
 """
-{
+Compresie dictionar: {
     'index': [
         {
             'pointer': int
@@ -12,13 +12,12 @@
     'data': '...word1word2...'
 }
 """
-from sys import stdout
 
 dictionary = {
     'index': [],
     'data': bytearray(b'')
 }
-
+DICT_FILE = 'dict.txt'
 
 def get_index_by_pointer(pointer):
     index = dictionary['index']
@@ -82,18 +81,23 @@ def to_dictionary(tokens):
         index.append(new_index)
 
 
-def print_dict():
+def print_dict(file):
     index = dictionary['index']
     data = dictionary['data']
     for i in index:
-        stdout.write(str(i['id']))
-        stdout.write(', ')
-        stdout.write(str(i['pointer']))
-        stdout.write(', ')
-        stdout.write(str(i['freq']))
-        stdout.write("\n")
-    stdout.write(data.decode("utf-8"))
-    stdout.write("\n")
+        file.write(str(i['id']))
+        file.write(', ')
+        file.write(str(i['pointer']))
+        file.write(', ')
+        file.write(str(i['freq']))
+        file.write("\n")
+    file.write(data.decode("utf-8"))
+    file.write("\n")
+
+
+def save_dict():
+    with open(DICT_FILE, 'w') as dict_file:
+        print_dict(dict_file)
 
 
 def debug():
@@ -104,4 +108,4 @@ def debug():
 
 
 # debug()
-print_dict()
+# print_dict()

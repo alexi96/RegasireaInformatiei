@@ -1,14 +1,12 @@
 import os
-import pickle
 import sys
 from sys import stdout
 
 import compressing
 import persistence
-from compressing import add_to_dict
 
 T = 512000
-DOCUMENTS_PATH = 'real_data'  # 'real_data' or 'simple_test_data', 'disk_test_data'
+DOCUMENTS_PATH = 'simple_test_data'  # 'real_data' or 'simple_test_data', 'disk_test_data'
 INPUT_OUTPUT = 'queries'  #
 fileIds = {}
 fileNames = {}
@@ -252,6 +250,8 @@ def main():
     index_files()
     index_documents()
 
+    compressing.save_dict()
+
     for dirname, dirnames, filenames in os.walk(INPUT_OUTPUT):
         for filename in filenames:
             path = os.path.join(dirname, filename)
@@ -267,6 +267,4 @@ def main():
                 persistence.save_postlist(result, output, fileNames)
 
 
-
 main()
-

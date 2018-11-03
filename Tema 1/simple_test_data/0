@@ -96,3 +96,5 @@ XCOPY          Copies files and directory trees.
 WMIC           Displays WMI information inside interactive command shell.
 
 For more information on tools see the command-line reference in the online help.
+
+PS: Request timed out
