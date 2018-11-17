@@ -109,7 +109,10 @@ def load_url(url, res, extra):
             },
             'body': {
             }
-        }
+        },
+        'tf_title_vector': [],
+        'tf_header_vector': [],
+        'tf_body_vector': []
     }
     extra['last_document'] = url
 
@@ -189,6 +192,53 @@ def load_body_length(data, res, extra):
 
     last['L'] += int(data)
 
+'''
+{
+query {
+    url: score
+}
+}
+'''
+def load_relevance():
+    res = {}
+    extra = {}
+
+    path = os.path.join(INPUT_DATA, RELEVANCE_DATA)
+    with open(path, 'r', encoding="utf8") as f:
+        for line in f:
+            line = line.strip()
+            words = line.split()
+            if not words:
+                continue
+            load_relevance_line(words, res, extra)
+
+    return res
 
 
+def load_relevance_line(words, res, extra):
+    first = words[0]
+    first = ''.join(c for c in first if c not in ':')
+
+    if first == 'query':
+        load_relevance_query(words[1:], res, extra)
+    elif first == 'url':
+        load_relevance_url(words[1:], res, extra)
+
+
+def load_relevance_query(query, res, extra):
+    full_query = ' '.join(query)
+    res[full_query] = {}
+    extra['last_query'] = full_query
+
+
+def load_relevance_url(url, res, extra):
+    if not len(url) > 1:
+        return
+
+    score = url[1]
+    url = url[0]
+
+    last_query = extra['last_query']
+    last = res[last_query]
+    last[url] = score
 

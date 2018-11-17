@@ -3,6 +3,7 @@ import math
 import string
 
 import load
+from vectors import mul, dot, vec, add
 
 
 def process_tfs(input):
@@ -10,7 +11,9 @@ def process_tfs(input):
 
     for query, query_data in input.items():
         for url, doc in query_data.items():
-            process_tfs_document(query.split(), doc)
+            qv = query.split()
+            process_tfs_document(qv, doc)
+            create_vectors(qv, doc)
 
 
 def process_tfs_document(query, doc):
@@ -71,23 +74,61 @@ def process_tfs_document(query, doc):
         tfs_body[qw] = tf
 
 
-'''
-{
-'query example': {
-    url: {
-        query_word: {
-            tf_title: [1,1],
-            tf_header: [1,1],
-            tf_body: [1,1]
-        } 
-    }   
-}
-}
-'''
-#def create_vectors(input, res)
+def create_vectors(query, doc):
+    tfs = doc['tfs']
+    tfs_title = tfs['title']
+    tfs_header = tfs['header']
+    tfs_body = tfs['body']
+
+    vec = []
+    for qw in query:
+        if qw not in tfs_title:
+            vec.append(0)
+        else:
+            vec.append(tfs_title[qw])
+    doc['tf_title_vector'] = vec
+
+    vec = []
+    for qw in query:
+        if qw not in tfs_header:
+            vec.append(0)
+        else:
+            vec.append(tfs_header[qw])
+    doc['tf_header_vector'] = vec
+
+    vec = []
+    for qw in query:
+        if qw not in tfs_body:
+            vec.append(0)
+        else:
+            vec.append(tfs_body[qw])
+    doc['tf_body_vector'] = vec
+
+
+def calculate_score(input, wt, wh, wb):
+    for query, query_data in input.items():
+        for url, doc in query_data.items():
+            qv = query.split()
+            tft = doc['tf_title_vector']
+            tfh = doc['tf_header_vector']
+            tfb = doc['tf_body_vector']
+
+            tft = mul(tft, wt)
+            tfh = mul(tfh, wh)
+            tfb = mul(tfb, wb)
+            t = add(tft, tfh)
+            t = add(t, tfb)
+
+            score = dot(t, vec(1, len(t)))
+
+            doc['score'] = score
 
 
 input = load.load_input()
 process_tfs(input)
-t = json.dumps(input, indent=4)
+calculate_score(input, 1, 1, 1)
+
+relevance = load.load_relevance()
+
+t = json.dumps(relevance, indent=4)
 print(t[0:2000])
