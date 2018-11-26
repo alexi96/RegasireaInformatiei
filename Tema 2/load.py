@@ -117,6 +117,21 @@ def load_url(url, res, extra):
     extra['last_document'] = url
 
 
+def in_query(word, query):
+    return word in query
+    nq = []
+    for q in query:
+        ln = round(len(q) / 4)
+        if ln == 0:
+            nq.append(q)
+        else:
+            nq.append(q[ln:-ln])
+
+    res = [q for q in nq if q in word]
+    res = len(res)
+    return res > 0
+
+
 def load_title(title_words, res, extra):
     last_query = extra['last_query']
     last_document = extra['last_document']
@@ -128,13 +143,13 @@ def load_title(title_words, res, extra):
     raw_score = last['raw_scores']
     raw_score = raw_score['title']
 
-    for t in title_words:
-        if t not in query:
+    for tw in title_words:
+        if not in_query(tw, query):
             continue
 
-        if t not in raw_score:
-            raw_score[t] = 0
-        raw_score[t] += 1
+        if tw not in raw_score:
+            raw_score[tw] = 0
+        raw_score[tw] += 1
 
     last['L'] += len(title_words)
 
@@ -151,7 +166,7 @@ def load_header(header_words, res, extra):
     raw_score = raw_score['header']
 
     for h in header_words:
-        if h not in query:
+        if not in_query(h, query):
             continue
 
         if h not in raw_score:
@@ -241,4 +256,3 @@ def load_relevance_url(url, res, extra):
     last_query = extra['last_query']
     last = res[last_query]
     last[url] = score
-

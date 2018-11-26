@@ -6,7 +6,7 @@ import load
 from vectors import mul, dot, vec, add
 
 
-def process_tfs(input):
+def process(input):
     extra = {}
 
     for query, query_data in input.items():
@@ -73,6 +73,18 @@ def process_tfs_document(query, doc):
         tf = tf / L
         tfs_body[qw] = tf
 
+    del doc['raw_scores']
+
+
+def calculate_n(input):
+    res = {}
+
+    for query, query_data in input.items():
+        for url, doc in query_data.items():
+            res[url] = 1
+
+    return len(res)
+
 
 def create_vectors(query, doc):
     tfs = doc['tfs']
@@ -104,9 +116,56 @@ def create_vectors(query, doc):
             vec.append(tfs_body[qw])
     doc['tf_body_vector'] = vec
 
+    del doc['tfs']
+
+
+def calculate_idfs(input, N):
+    dfs = {}
+    for query, query_data in input.items():
+        qv = query.split()
+        for q in qv:
+            dfs[q] = {}
+
+    for query, query_data in input.items():
+        for url, doc in query_data.items():
+            rs = doc['raw_scores']
+            t = rs['title']
+            for qw, raw in t.items():
+                if qw in dfs:
+                    dfs[qw][url] = 1
+            t = rs['header']
+            for qw, raw in t.items():
+                if qw in dfs:
+                    dfs[qw][url] = 1
+            t = rs['body']
+            for qw, raw in t.items():
+                if qw in dfs:
+                    dfs[qw][url] = 1
+
+    res_t = dfs
+    dfs = {}
+    for q, urls in res_t.items():
+        dfs[q] = len(urls)
+
+    for query, query_data in input.items():
+        qv = query.split()
+
+        for url, doc in query_data.items():
+            l = len(qv)
+            idf = []
+            for i in range(l):
+                q = qv[i]
+                dfq = dfs[q]
+                if dfq == 0:
+                    idf.append(0)
+                else:
+                    idf.append(math.log(N / dfq))
+
+            doc['idf'] = idf
+
 
 def calculate_score(input, wt, wh, wb):
-    for query, query_data in input.items():
+    for query, query_data in input.itemzs():
         for url, doc in query_data.items():
             qv = query.split()
             tft = doc['tf_title_vector']
@@ -117,18 +176,23 @@ def calculate_score(input, wt, wh, wb):
             tfh = mul(tfh, wh)
             tfb = mul(tfb, wb)
             t = add(tft, tfh)
-            t = add(t, tfb)
-
-            score = dot(t, vec(1, len(t)))
+            t = add(t, tfb)  # ( ... )
+            t = dot(t, doc['idf'])
+            score = t
 
             doc['score'] = score
 
 
 input = load.load_input()
-process_tfs(input)
+N = calculate_n(input)
+calculate_idfs(input, N)
+process(input)
 calculate_score(input, 1, 1, 1)
 
 relevance = load.load_relevance()
 
 t = json.dumps(relevance, indent=4)
+# print(t[0:2000])
+
+t = json.dumps(input, indent=4)
 print(t[0:2000])
