@@ -251,6 +251,7 @@ def load_relevance_url(url, res, extra):
         return
 
     score = url[1]
+    score = float(score)
     url = url[0]
 
     last_query = extra['last_query']

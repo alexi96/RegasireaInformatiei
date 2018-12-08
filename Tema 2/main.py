@@ -2,6 +2,8 @@ import json
 import math
 import string
 
+from matplotlib.mlab import frange
+
 import load
 from vectors import mul, dot, vec, add
 
@@ -29,10 +31,14 @@ def process_tfs_document(query, doc):
     tfs_body = tfs['body']
 
     for qw in query:
+        if L == 0:
+            tfs_title[qw] = 0
+            continue
+
         if qw in raw_title:
             raw = raw_title[qw]
         else:
-            raw = 0
+            raw = 1  ###
 
         if raw == 0:
             tfs_title[qw] = 0
@@ -44,10 +50,14 @@ def process_tfs_document(query, doc):
         tfs_title[qw] = tf
 
     for qw in query:
+        if L == 0:
+            tfs_header[qw] = 0
+            continue
+
         if qw in raw_header:
             raw = raw_header[qw]
         else:
-            raw = 0
+            raw = 1  ###
 
         if raw == 0:
             tfs_header[qw] = 0
@@ -59,10 +69,14 @@ def process_tfs_document(query, doc):
         tfs_header[qw] = tf
 
     for qw in query:
+        if L == 0:
+            tfs_body[qw] = 0
+            continue
+
         if qw in raw_body:
             raw = raw_body[qw]
         else:
-            raw = 0
+            raw = 1  ###
 
         if raw == 0:
             tfs_body[qw] = 0
@@ -165,7 +179,7 @@ def calculate_idfs(input, N):
 
 
 def calculate_score(input, wt, wh, wb):
-    for query, query_data in input.itemzs():
+    for query, query_data in input.items():
         for url, doc in query_data.items():
             qv = query.split()
             tft = doc['tf_title_vector']
@@ -187,12 +201,36 @@ input = load.load_input()
 N = calculate_n(input)
 calculate_idfs(input, N)
 process(input)
+
 calculate_score(input, 1, 1, 1)
 
 relevance = load.load_relevance()
 
-t = json.dumps(relevance, indent=4)
-# print(t[0:2000])
-
 t = json.dumps(input, indent=4)
 print(t[0:2000])
+
+t = json.dumps(relevance, indent=4)
+print(t[0:2000])
+
+min_diff = 9999
+min = [min_diff, min_diff, min_diff]
+
+step = 0.1
+for wt in frange(0, 1, step):
+    for wh in frange(0, 1, step):
+        for wb in frange(0, 1, step):
+            calculate_score(input, wt, wh, wb)
+            diff = 0
+
+            for query, docs in relevance.items():
+                calc_docs = input[query]
+                for doc, score in docs.items():
+                    calc_score = calc_docs[doc]['score']
+                    diff += abs(score - calc_score)
+
+            if diff < min_diff:
+                min_diff = diff
+                min = [wt, wh, wb]
+                print(min)
+                print(diff)
+
