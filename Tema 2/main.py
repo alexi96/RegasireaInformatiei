@@ -1,5 +1,6 @@
 import json
 import math
+import os
 import string
 
 from matplotlib.mlab import frange
@@ -132,15 +133,21 @@ def create_vectors(query, doc):
 
     del doc['tfs']
 
-
-def calculate_idfs(input, N):
-    dfs = {}
+def query_tokens(input):
+    res = {}
     for query, query_data in input.items():
         qv = query.split()
         for q in qv:
-            dfs[q] = {}
+            res[q] = 0
 
-    for query, query_data in input.items():
+    return res
+
+
+def calculate_idfs(input, N):
+    dfs = query_tokens(input)
+    load.index_documents(dfs)
+
+    '''for query, query_data in input.items():
         for url, doc in query_data.items():
             rs = doc['raw_scores']
             t = rs['title']
@@ -159,7 +166,7 @@ def calculate_idfs(input, N):
     res_t = dfs
     dfs = {}
     for q, urls in res_t.items():
-        dfs[q] = len(urls)
+        dfs[q] = len(urls)'''
 
     for query, query_data in input.items():
         qv = query.split()
@@ -202,14 +209,20 @@ N = calculate_n(input)
 calculate_idfs(input, N)
 process(input)
 
-calculate_score(input, 1, 1, 1)
-
-relevance = load.load_relevance()
-
 t = json.dumps(input, indent=4)
 print(t[0:2000])
 
-t = json.dumps(relevance, indent=4)
+CACHE_PATH = './cache'
+if os.path.exists(CACHE_PATH) and os.path.getsize(CACHE_PATH) > 0:
+    with open(CACHE_PATH, 'r') as cache:
+        t = cache.read()
+        relevance = json.loads(t)
+else:
+    relevance = load.load_relevance()
+    t = json.dumps(relevance)
+    with open(CACHE_PATH, 'w') as cache:
+        cache.write(t)
+
 print(t[0:2000])
 
 min_diff = 9999
@@ -231,6 +244,6 @@ for wt in frange(0, 1, step):
             if diff < min_diff:
                 min_diff = diff
                 min = [wt, wh, wb]
-                print(min)
-                print(diff)
 
+print(min)
+print(diff)

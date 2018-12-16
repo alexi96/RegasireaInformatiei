@@ -1,9 +1,10 @@
 import os
 
-INPUT_DATA = 'Training'
-QUERY_DATA = 'queuries'
+INPUT_DATA = 'Test'
+QUERY_DATA = 'queries'
 RELEVANCE_DATA = 'relevance'
-
+DOCUMENTS_PATH = 'simple_test_data'
+punctuation_string = "()[]{},.;@#'?!&$\"*"
 
 '''
 {
@@ -257,3 +258,40 @@ def load_relevance_url(url, res, extra):
     last_query = extra['last_query']
     last = res[last_query]
     last[url] = score
+
+
+def index_documents(query):
+    dictionary = {}
+
+    for dirname, dirnames, filenames in os.walk(DOCUMENTS_PATH):
+        for filename in filenames:
+            path = os.path.join(dirname, filename)
+            index_file(path, query)
+
+
+def index_file(path, query):
+    with open(path, 'r') as f:
+        for line in f:
+            for word in line.split():
+                index_token(word, query)
+
+
+def simple_tokenize(word):
+    res = word
+    res = ''.join(ch for ch in res if ch not in punctuation_string)
+
+    if res.endswith('s'):
+        res = res[:-1]
+
+    res = res.lower()
+    return res
+
+
+def index_token(token, query):
+    token = simple_tokenize(token)
+
+    if not token:
+        return
+
+    if token in query:
+        query[token] += 1
